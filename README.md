@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>Apple Liquid Glass Network Radar & Developer Cockpit Suite</strong>
+  <strong>Network Radar & Developer Cockpit Suite</strong>
 </p>
 
 <p align="center">
