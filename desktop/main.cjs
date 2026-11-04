@@ -212,9 +212,9 @@ function createMainWindow() {
  */
 function createSystemTray() {
   try {
-    // 16x16 / 32x32 SVG or Template Icon
+    // 16x16 / 32x32 SVG or Template Icon with Net GUI Brand Symbol
     const icon = nativeImage.createFromBuffer(Buffer.from(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><circle cx="12" cy="12" r="2"/></svg>'
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path fill="#0E1420" d="M80 36H176A44 44 0 0 1 220 80V176A44 44 0 0 1 176 220H80A44 44 0 0 1 36 176V80A44 44 0 0 1 80 36Z"/><path fill="#2EE6A6" d="M96 84A12 12 0 0 0 84 96V148A12 12 0 0 0 96 160H108V172A12 12 0 0 0 120 184H136A12 12 0 0 0 148 172V160H160A12 12 0 0 0 172 148V96A12 12 0 0 0 160 84Z"/></svg>'
     ));
 
     tray = new Tray(icon);

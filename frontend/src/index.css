@@ -4,23 +4,31 @@
 
 @layer base {
   :root {
-    --app-bg: #f6f7f9;
-    --text-primary: #111827;
+    --app-bg: #F4F6F9;
+    --text-primary: #0E1420;
     --text-secondary: #4b5563;
     --text-muted: #6b7280;
     --glass-bg: #ffffff;
-    --glass-border: rgba(0, 0, 0, 0.08);
-    --glass-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --glass-border: rgba(14, 20, 32, 0.08);
+    --glass-shadow: 0 1px 2px 0 rgba(14, 20, 32, 0.04);
+    --brand-mint: #2EE6A6;
+    --brand-rack: #0E1420;
+    --brand-paper: #F4F6F9;
+    --brand-night: #070A12;
   }
 
   .dark {
-    --app-bg: #090b10;
-    --text-primary: #f3f4f6;
+    --app-bg: #070A12;
+    --text-primary: #F4F6F9;
     --text-secondary: #9ca3af;
     --text-muted: #6b7280;
-    --glass-bg: #0f121a;
+    --glass-bg: #0E1420;
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --brand-mint: #2EE6A6;
+    --brand-rack: #0E1420;
+    --brand-paper: #F4F6F9;
+    --brand-night: #070A12;
   }
 
   body {

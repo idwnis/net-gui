@@ -1,13 +1,24 @@
-# ⚡ Net GUI (v2.0)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/netgui-horizontal-dark.svg">
+    <img alt="Net GUI Logo" src="brand/netgui-horizontal.svg" width="560">
+  </picture>
+</p>
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Django 5.1](https://img.shields.io/badge/Django-5.1%20ASGI-green.svg)](https://www.djangoproject.com/)
-[![React 19](https://img.shields.io/badge/React-19.0-61dafb.svg)](https://react.dev/)
-[![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
-[![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg)](https://vitejs.dev/)
-[![Electron 33](https://img.shields.io/badge/Electron-33.2-47848F.svg)](https://www.electronjs.org/)
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p align="center">
+  <strong>Apple Liquid Glass Network Radar & Developer Cockpit Suite</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-0E1420?style=flat&logo=python" alt="Python 3.10+"></a>
+  <a href="https://www.djangoproject.com/"><img src="https://img.shields.io/badge/Django-5.1%20ASGI-2EE6A6?style=flat&logo=django&logoColor=0E1420" alt="Django 5.1"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.0-0E1420?style=flat&logo=react" alt="React 19"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat&logo=typescript" alt="TypeScript 5.7"></a>
+  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-6.1-646cff?style=flat&logo=vite" alt="Vite 6"></a>
+  <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/Electron-33.2-47848F?style=flat&logo=electron" alt="Electron 33"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/TailwindCSS-3.4-2EE6A6?style=flat&logo=tailwindcss&logoColor=0E1420" alt="Tailwind CSS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
 
 **Net GUI** is a high-performance local network intelligence platform, developer orchestrator, and real-time observability suite. Engineered with an asynchronous **Django 5.1 ASGI** backend, high-frequency **WebSockets (Django Channels + Daphne)**, and a modern **Liquid Glass (Glisse)** UI built on **React 19**, Net GUI operates seamlessly across:
 
@@ -23,6 +34,7 @@
 - [Overview & Architecture](#-overview--architecture)
 - [Key Features & Modules](#-key-features--modules)
 - [Tech Stack](#-tech-stack)
+- [Brand Identity & Design System](#-brand-identity--design-system)
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
 - [Running & Build Instructions](#-running--build-instructions)
@@ -141,6 +153,39 @@ flowchart TB
 | **Networking & OS** | psutil, socket, httpx, drf-spectacular (OpenAPI 3.1) |
 | **Desktop Shell** | Electron 33, electron-builder 25, PyInstaller 6 |
 | **Containers & Deploy** | Docker multi-stage build, docker-compose, systemd unit |
+
+---
+
+## 🎨 Brand Identity & Design System
+
+The Net GUI brand identity is built on a simple concept: **a network port punched into an application tile, illuminated from inside like an active hardware link light**. The tile represents the application interface; the light signifies an active, verified network connection.
+
+<p align="center">
+  <img src="brand/netgui-board.png" alt="Net GUI Brand Identity Board" width="720">
+</p>
+
+### 🎨 Color Palette
+
+| Color Name | HEX | RGB | Application in Net GUI |
+|---|---|---|---|
+| **Rack** | `#0E1420` | `rgb(14, 20, 32)` | App tile, dark UI panels, glass cards, wordmark |
+| **Link Mint** | `#2EE6A6` | `rgb(46, 230, 166)` | Port light, active links, primary accent, interactive buttons |
+| **Paper** | `#F4F6F9` | `rgb(244, 246, 249)` | Light mode background, high-contrast text and surfaces |
+| **Night** | `#070A12` | `rgb(7, 10, 18)` | Deep background behind glow icon, dark canvas, OLED black |
+
+### 📁 Brand Assets Directory (`brand/`)
+
+All vector masters, export variants, raster PNGs, and web icons are tracked in the repository under [`brand/`](brand/):
+
+- `brand/netgui-symbol.svg`: Flat master vector mark (Rack tile + Link Mint port)
+- `brand/netgui-symbol-cutout.svg`: Single-color cutout vector master
+- `brand/netgui-horizontal.svg` & `brand/netgui-horizontal-dark.svg`: Primary horizontal lockups (light & dark)
+- `brand/netgui-stacked.svg`: Vertical stacked lockup
+- `brand/netgui-app-icon-glow.svg`: Luminous glowing application icon (Dock / Desktop / Hero)
+- `brand/png/`: Master 1024px PNG exports
+- `brand/web/`: Complete favicon bundle (`favicon.ico`, `favicon.svg`, `apple-touch-icon.png`, `site.webmanifest`)
+- `brand/variants/`: Monochrome, black, white, and square avatar variants
+- `brand/USAGE-GUIDE.md`: Spacing, minimum sizes, and usage rules
 
 ---
 

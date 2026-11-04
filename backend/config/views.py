@@ -5,10 +5,26 @@ from django.conf import settings
 
 def serve_spa(request):
     """
-    Serves the compiled Vite React Single Page Application (frontend/dist/index.html).
+    Serves the compiled Vite React Single Page Application (frontend/dist/index.html)
+    and root static assets (favicons, manifest, touch icons).
     Enables direct web browser access to Net GUI on headless Linux servers.
     """
-    dist_index = settings.BASE_DIR.parent / 'frontend' / 'dist' / 'index.html'
+    dist_dir = settings.BASE_DIR.parent / 'frontend' / 'dist'
+    
+    # Check if a specific root asset is requested (e.g. /favicon.ico, /favicon.svg, /site.webmanifest)
+    req_path = request.path.lstrip('/')
+    if req_path:
+        target_file = dist_dir / req_path
+        if target_file.exists() and target_file.is_file():
+            content_type, _ = mimetypes.guess_type(str(target_file))
+            if str(target_file).endswith('.svg'):
+                content_type = 'image/svg+xml'
+            elif str(target_file).endswith('.webmanifest'):
+                content_type = 'application/manifest+json'
+            with open(target_file, 'rb') as f:
+                return HttpResponse(f.read(), content_type=content_type or 'application/octet-stream')
+
+    dist_index = dist_dir / 'index.html'
     if dist_index.exists():
         with open(dist_index, 'r', encoding='utf-8') as f:
             return HttpResponse(f.read(), content_type='text/html')

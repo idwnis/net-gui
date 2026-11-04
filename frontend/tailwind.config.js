@@ -8,12 +8,19 @@ export default {
   theme: {
     extend: {
       colors: {
+        brand: {
+          rack: '#0E1420',
+          mint: '#2EE6A6',
+          'mint-glow': 'rgba(46, 230, 166, 0.4)',
+          paper: '#F4F6F9',
+          night: '#070A12',
+        },
         cyber: {
-          dark: '#0a0d14',
-          card: '#111726',
-          border: '#1e293b',
-          accent: '#38bdf8',
-          success: '#10b981',
+          dark: '#070A12',
+          card: '#0E1420',
+          border: '#1C2536',
+          accent: '#2EE6A6',
+          success: '#2EE6A6',
           warning: '#f59e0b',
           danger: '#ef4444',
           muted: '#64748b'

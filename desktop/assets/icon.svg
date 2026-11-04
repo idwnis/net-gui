@@ -1,24 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b0f19" />
-      <stop offset="100%" stop-color="#030712" />
-    </linearGradient>
-    <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#0284c7" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)" />
-  <circle cx="256" cy="256" r="180" fill="none" stroke="#1e293b" stroke-width="6" stroke-dasharray="12 12" />
-  <circle cx="256" cy="256" r="120" fill="none" stroke="#334155" stroke-width="6" />
-  <circle cx="256" cy="256" r="60" fill="none" stroke="#38bdf8" stroke-width="6" opacity="0.8" />
-  <path d="M256 76 L256 436" stroke="#1e293b" stroke-width="4" stroke-dasharray="8 8" />
-  <path d="M76 256 L436 256" stroke="#1e293b" stroke-width="4" stroke-dasharray="8 8" />
-  <!-- Radar sweep line -->
-  <line x1="256" y1="256" x2="380" y2="132" stroke="url(#cyan-glow)" stroke-width="8" stroke-linecap="round" />
-  <circle cx="256" cy="256" r="16" fill="#38bdf8" />
-  <circle cx="340" cy="172" r="12" fill="#22c55e" />
-  <circle cx="180" cy="310" r="8" fill="#eab308" />
-  <circle cx="210" cy="180" r="9" fill="#06b6d4" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><defs>
+<linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#222C40"/><stop offset="1" stop-color="#0A0E18"/></linearGradient>
+<linearGradient id="p" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FFFD6"/><stop offset="1" stop-color="#17C98C"/></linearGradient>
+<filter id="g" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+<path fill="url(#t)" d="M80 36H176A44 44 0 0 1 220 80V176A44 44 0 0 1 176 220H80A44 44 0 0 1 36 176V80A44 44 0 0 1 80 36Z"/>
+<path fill="#2EE6A6" opacity=".55" filter="url(#g)" d="M96 84A12 12 0 0 0 84 96V148A12 12 0 0 0 96 160H108V172A12 12 0 0 0 120 184H136A12 12 0 0 0 148 172V160H160A12 12 0 0 0 172 148V96A12 12 0 0 0 160 84Z"/><path fill="url(#p)" d="M96 84A12 12 0 0 0 84 96V148A12 12 0 0 0 96 160H108V172A12 12 0 0 0 120 184H136A12 12 0 0 0 148 172V160H160A12 12 0 0 0 172 148V96A12 12 0 0 0 160 84Z"/></svg>
