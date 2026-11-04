@@ -61,6 +61,8 @@ class GatewayAPITestCase(TestCase):
         self.assertFalse(response.data['isEnabled'])
 
     def test_dns_stats_and_queries_api(self):
+        DNSSinkholeService.process_query('example.com')
+
         url_stats = reverse('gateway-dns-stats')
         res_stats = self.client.get(url_stats)
         self.assertEqual(res_stats.status_code, 200)

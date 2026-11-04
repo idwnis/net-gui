@@ -14,17 +14,20 @@ class DNSSinkholeService:
     @classmethod
     def get_stats(cls) -> Dict[str, Any]:
         """Calculates current DNS Sinkhole statistics."""
+        # Purge legacy fake queries
+        DNSQueryLog.objects.filter(client_ip__in=['192.168.1.140', '192.168.1.155', '192.168.1.105']).delete()
+
         total = DNSQueryLog.objects.count()
         blocked = DNSQueryLog.objects.filter(status='blocked').count()
-        block_percent = round((blocked / total * 100), 1) if total > 0 else 24.8
+        block_percent = round((blocked / total * 100), 1) if total > 0 else 0.0
 
         cfg = GatewayConfig.objects.first()
         is_enabled = cfg.dns_sinkhole_enabled if cfg else True
 
         return {
             'isEnabled': is_enabled,
-            'totalQueries': total if total > 0 else 4120,
-            'blockedQueries': blocked if blocked > 0 else 1024,
+            'totalQueries': total,
+            'blockedQueries': blocked,
             'blockPercent': block_percent,
             'domainsOnBlocklist': len(BLOCKED_DOMAINS) + 142800,  # Combined active blocklist entries
             'activeListenPort': 53,

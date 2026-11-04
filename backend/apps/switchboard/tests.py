@@ -6,6 +6,18 @@ from apps.switchboard.services import OllamaSwitchboardService
 class SwitchboardTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        from apps.switchboard.models import LocalLLMModel
+        LocalLLMModel.objects.create(
+            model_id='test-model',
+            name='Test Model',
+            tag='test:latest',
+            family='llama',
+            parameter_size='7B',
+            quantization='Q4_K_M',
+            size_gb=1.0,
+            vram_usage_gb=1.0,
+            status='loaded_in_vram'
+        )
 
     def test_get_models(self):
         models = OllamaSwitchboardService.get_models()

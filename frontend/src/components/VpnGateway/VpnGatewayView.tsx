@@ -386,29 +386,35 @@ export const VpnGatewayView: React.FC<VpnGatewayViewProps> = ({ hostIp }) => {
             </div>
 
             <div className="space-y-2">
-              {dnsQueries.map(q => (
-                <div key={q.id} className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <LiquidGlassBadge variant={q.status === 'blocked' ? 'danger' : 'success'}>
-                      {q.status === 'blocked' ? 'Blocked' : 'Allowed'}
-                    </LiquidGlassBadge>
+              {dnsQueries.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500 italic border border-dashed border-black/[0.08] dark:border-white/[0.08] rounded-2xl">
+                  No DNS queries intercepted yet. Set client DNS to 127.0.0.1 (port 53) to sinkhole telemetry and ad networks.
+                </div>
+              ) : (
+                dnsQueries.map(q => (
+                  <div key={q.id} className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LiquidGlassBadge variant={q.status === 'blocked' ? 'danger' : 'success'}>
+                        {q.status === 'blocked' ? 'Blocked' : 'Allowed'}
+                      </LiquidGlassBadge>
 
-                    <div className="min-w-0">
-                      <p className="font-mono font-semibold text-slate-900 dark:text-white truncate">{q.domain}</p>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block">{q.clientName} ({q.clientIp}) • {q.type} query</span>
+                      <div className="min-w-0">
+                        <p className="font-mono font-semibold text-slate-900 dark:text-white truncate">{q.domain}</p>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block">{q.clientName} ({q.clientIp}) • {q.type} query</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      {q.category && (
+                        <LiquidGlassBadge variant="neutral">
+                          {q.category}
+                        </LiquidGlassBadge>
+                      )}
+                      <span className="text-[10px] font-mono text-slate-400">{q.timestamp}</span>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    {q.category && (
-                      <LiquidGlassBadge variant="neutral">
-                        {q.category}
-                      </LiquidGlassBadge>
-                    )}
-                    <span className="text-[10px] font-mono text-slate-400">{q.timestamp}</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </LiquidGlassCard>
         </div>

@@ -11,65 +11,41 @@ class OllamaSwitchboardService:
 
     @classmethod
     def get_models(cls) -> List[Dict[str, Any]]:
-        """Introspects local Ollama engine or returns database models."""
+        """Introspects local Ollama engine or returns real database models."""
+        try:
+            with httpx.Client(timeout=1.5) as client:
+                res = client.get(f"{cls.OLLAMA_BASE_URL}/api/tags")
+                if res.status_code == 200:
+                    data = res.json()
+                    ollama_models = data.get('models', [])
+                    active_tags = set()
+                    for om in ollama_models:
+                        tag = om.get('name') or om.get('model', '')
+                        size_gb = round(om.get('size', 0) / (1024 ** 3), 1)
+                        details = om.get('details', {})
+                        active_tags.add(tag)
+                        LocalLLMModel.objects.update_or_create(
+                            tag=tag,
+                            defaults={
+                                'model_id': f"llm-{tag.replace(':', '-').replace('.', '-')}",
+                                'name': tag.split(':')[0].title(),
+                                'family': details.get('family', 'custom'),
+                                'parameter_size': details.get('parameter_size', '7B'),
+                                'quantization': details.get('quantization_level', 'Q4_K_M'),
+                                'size_gb': size_gb,
+                                'vram_usage_gb': 0.0,
+                                'status': 'on_disk',
+                                'context_length': 32768,
+                                'last_used': 'Recently',
+                            }
+                        )
+                    # Purge models no longer on disk
+                    LocalLLMModel.objects.exclude(tag__in=active_tags).delete()
+        except Exception:
+            # Ollama offline; purge any legacy seeded dummy models
+            LocalLLMModel.objects.filter(model_id__in=['llm-deepseek-r1', 'llm-llama32', 'llm-qwen-coder', 'llm-nomic-embed']).delete()
+
         models = LocalLLMModel.objects.all()
-
-        # Seed initial models if DB is fresh
-        if not models.exists():
-            LocalLLMModel.objects.create(
-                model_id='llm-deepseek-r1',
-                name='DeepSeek-R1 Distill Llama',
-                tag='deepseek-r1:8b',
-                family='llama',
-                parameter_size='8B',
-                quantization='Q4_K_M',
-                size_gb=4.9,
-                vram_usage_gb=5.4,
-                status='loaded_in_vram',
-                context_length=32768,
-                last_used='2 min ago'
-            )
-            LocalLLMModel.objects.create(
-                model_id='llm-llama32',
-                name='Llama 3.2 Lightweight',
-                tag='llama3.2:3b',
-                family='llama',
-                parameter_size='3B',
-                quantization='Q4_K_M',
-                size_gb=2.0,
-                vram_usage_gb=2.2,
-                status='loaded_in_vram',
-                context_length=131072,
-                last_used='10 min ago'
-            )
-            LocalLLMModel.objects.create(
-                model_id='llm-qwen-coder',
-                name='Qwen 2.5 Coder',
-                tag='qwen2.5-coder:7b',
-                family='qwen2',
-                parameter_size='7B',
-                quantization='Q4_K_M',
-                size_gb=4.7,
-                vram_usage_gb=0.0,
-                status='on_disk',
-                context_length=32768,
-                last_used='Yesterday'
-            )
-            LocalLLMModel.objects.create(
-                model_id='llm-nomic-embed',
-                name='Nomic Text Embeddings',
-                tag='nomic-embed-text:latest',
-                family='nomic-bert',
-                parameter_size='137M',
-                quantization='F16',
-                size_gb=0.27,
-                vram_usage_gb=0.0,
-                status='on_disk',
-                context_length=8192,
-                last_used='3 days ago'
-            )
-            models = LocalLLMModel.objects.all()
-
         return [m.to_dict() for m in models]
 
     @classmethod

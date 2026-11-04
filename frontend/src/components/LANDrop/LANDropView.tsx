@@ -258,36 +258,42 @@ export const LANDropView: React.FC<LANDropViewProps> = ({ hostIp }) => {
             </div>
 
             <div className="space-y-2.5">
-              {files.map(file => (
-                <div
-                  key={file.id}
-                  className="p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0 border border-black/[0.05] dark:border-white/10">
-                      {getFileIcon(file.type)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{file.name}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {formatFileSize(file.size)} • From <span className="text-slate-700 dark:text-slate-300 font-medium">{file.sender}</span> • {file.timestamp}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <LiquidGlassBadge variant="success">
-                      100%
-                    </LiquidGlassBadge>
-                    <LiquidGlassButton
-                      variant="glass"
-                      size="sm"
-                      onClick={() => alert(`Saving ${file.name} to ~/Downloads...`)}
-                      leftIcon={<Download className="w-3.5 h-3.5" />}
-                    />
-                  </div>
+              {files.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500 italic border border-dashed border-black/[0.08] dark:border-white/[0.08] rounded-2xl">
+                  No transfers yet. Drop files above to send to peers or scan the QR code from iPhone / Android to upload.
                 </div>
-              ))}
+              ) : (
+                files.map(file => (
+                  <div
+                    key={file.id}
+                    className="p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0 border border-black/[0.05] dark:border-white/10">
+                        {getFileIcon(file.type)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{file.name}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {formatFileSize(file.size)} • From <span className="text-slate-700 dark:text-slate-300 font-medium">{file.sender}</span> • {file.timestamp}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <LiquidGlassBadge variant="success">
+                        100%
+                      </LiquidGlassBadge>
+                      <LiquidGlassButton
+                        variant="glass"
+                        size="sm"
+                        onClick={() => alert(`Saving ${file.name} to ~/Downloads...`)}
+                        leftIcon={<Download className="w-3.5 h-3.5" />}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </LiquidGlassCard>
         </div>

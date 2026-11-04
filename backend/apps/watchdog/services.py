@@ -11,55 +11,10 @@ logger = logging.getLogger(__name__)
 class SSLWatchdogService:
     @classmethod
     def get_domains(cls) -> List[Dict[str, Any]]:
-        """Returns all monitored domains, seeding defaults if empty."""
+        """Returns all monitored domains."""
+        # Clean out any old mock domains
+        DomainWatchdogItem.objects.filter(domain_id__in=['dom-1', 'dom-2', 'dom-3']).delete()
         domains = DomainWatchdogItem.objects.all()
-
-        if not domains.exists():
-            DomainWatchdogItem.objects.create(
-                domain_id='dom-1',
-                domain='netpulse.dev',
-                status='valid',
-                ssl_issuer="Let's Encrypt Authority X3",
-                ssl_expiry_days=184,
-                valid_until='2027-05-10',
-                auto_renew=True,
-                dns_records=[
-                    {'type': 'A', 'value': '76.76.21.21', 'ttl': 300},
-                    {'type': 'CNAME', 'value': 'cname.vercel-dns.com', 'ttl': 300}
-                ],
-                uptime_percent=99.98,
-                last_checked='3 min ago'
-            )
-            DomainWatchdogItem.objects.create(
-                domain_id='dom-2',
-                domain='api.storefront-hub.com',
-                status='expiring_soon',
-                ssl_issuer='DigiCert Global TLS RSA CA',
-                ssl_expiry_days=12,
-                valid_until='2026-11-16',
-                auto_renew=False,
-                dns_records=[
-                    {'type': 'A', 'value': '143.198.112.90', 'ttl': 600}
-                ],
-                uptime_percent=99.91,
-                last_checked='Just now'
-            )
-            DomainWatchdogItem.objects.create(
-                domain_id='dom-3',
-                domain='auth.internal-company.io',
-                status='valid',
-                ssl_issuer='Cloudflare Inc ECC CA-3',
-                ssl_expiry_days=89,
-                valid_until='2027-02-01',
-                auto_renew=True,
-                dns_records=[
-                    {'type': 'CNAME', 'value': 'auth-gateway.cf.net', 'ttl': 120}
-                ],
-                uptime_percent=100.0,
-                last_checked='5 min ago'
-            )
-            domains = DomainWatchdogItem.objects.all()
-
         return [d.to_dict() for d in domains]
 
     @classmethod

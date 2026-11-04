@@ -39,37 +39,69 @@ class OSAdapter:
     def get_primary_interface(cls) -> Dict[str, Any]:
         """
         Detects primary active network interface, local IP, and MAC address.
-        Works across macOS, Linux, and Windows without external services.
+        Works across macOS, Linux, and Windows.
+        Prioritizes real physical LAN interfaces (en0, eth0, wlan0) over virtual tunnels.
         """
-        primary_ip = '127.0.0.1'
-        try:
-            # Probe default route by connecting a dummy UDP socket (no actual packet sent)
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(('8.8.8.8', 80))
-            primary_ip = s.getsockname()[0]
-            s.close()
-        except Exception:
-            pass
-
-        detected_iface = 'unknown'
         net_if_addrs = psutil.net_if_addrs()
+        detected_iface = 'unknown'
+        primary_ip = '127.0.0.1'
 
-        for iface_name, addrs in net_if_addrs.items():
-            for addr in addrs:
-                if addr.family == socket.AF_INET and addr.address == primary_ip:
-                    detected_iface = iface_name
-                    break
-            if detected_iface != 'unknown':
+        # 1. Prefer physical interfaces with private IPv4 address
+        preferred_names = ['en0', 'en1', 'eth0', 'eth1', 'wlan0', 'Wi-Fi', 'Ethernet']
+        found = False
+        for iface in preferred_names:
+            if iface in net_if_addrs:
+                for addr in net_if_addrs[iface]:
+                    if addr.family == socket.AF_INET and not addr.address.startswith('127.'):
+                        primary_ip = addr.address
+                        detected_iface = iface
+                        found = True
+                        break
+            if found:
                 break
 
+        # 2. If not found, look for any non-virtual interface with IPv4
+        if not found:
+            for iface_name, addrs in net_if_addrs.items():
+                if iface_name.startswith(('utun', 'tun', 'tap', 'lo', 'docker', 'br-')):
+                    continue
+                for addr in addrs:
+                    if addr.family == socket.AF_INET and not addr.address.startswith('127.') and not addr.address.startswith('198.18.'):
+                        primary_ip = addr.address
+                        detected_iface = iface_name
+                        found = True
+                        break
+                if found:
+                    break
+
+        # 3. Fallback to default route probe
+        if not found:
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(('8.8.8.8', 80))
+                primary_ip = s.getsockname()[0]
+                s.close()
+            except Exception:
+                pass
+
+        # Detect real MAC address
         mac_address = '00:00:00:00:00:00'
         if detected_iface in net_if_addrs:
             for addr in net_if_addrs[detected_iface]:
-                # AF_LINK on BSD/macOS or AF_PACKET on Linux
-                if hasattr(psutil, 'AF_LINK') and addr.family == psutil.AF_LINK:
-                    mac_address = addr.address
-                elif hasattr(socket, 'AF_PACKET') and addr.family == socket.AF_PACKET:
-                    mac_address = addr.address
+                if hasattr(psutil, 'AF_LINK') and addr.family == psutil.AF_LINK and addr.address:
+                    mac_address = addr.address.upper()
+                elif hasattr(socket, 'AF_PACKET') and addr.family == socket.AF_PACKET and addr.address:
+                    mac_address = addr.address.upper()
+
+        if mac_address == '00:00:00:00:00:00' and cls.get_platform() == 'darwin' and detected_iface != 'unknown':
+            try:
+                res = subprocess.run(['ifconfig', detected_iface], capture_output=True, text=True, timeout=2)
+                import re
+                match = re.search(r'ether\s+([0-9a-fA-F:]+)', res.stdout)
+                if match:
+                    mac_address = match.group(1).upper()
+            except Exception:
+                pass
 
         return {
             'interface': detected_iface,

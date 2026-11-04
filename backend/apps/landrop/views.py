@@ -19,19 +19,9 @@ class FilesListAPIView(APIView):
     """Lists transferred files in the LAN Drop inbox."""
     @extend_schema(summary="List LAN Drop Files")
     def get(self, request):
+        # Purge legacy fake seed file
+        DropFileItem.objects.filter(name='netgui-architecture.pdf').delete()
         files = DropFileItem.objects.all()[:50]
-
-        # Seed sample files if inbox is fresh
-        if not files.exists():
-            LanDropService.save_file(
-                filename='netgui-architecture.pdf',
-                content=b'%PDF-1.4 Net GUI Architecture Diagram Spec',
-                content_type='application/pdf',
-                sender='MacBook Pro',
-                sender_device='MacBook'
-            )
-            files = DropFileItem.objects.all()[:50]
-
         return Response([f.to_dict() for f in files], status=status.HTTP_200_OK)
 
 class FileUploadAPIView(APIView):

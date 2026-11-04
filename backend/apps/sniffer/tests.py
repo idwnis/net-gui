@@ -31,6 +31,13 @@ class SnifferServiceTestCase(TestCase):
 class SnifferAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        SnifferService.record_packet(
+            method='GET',
+            url='http://localhost:8000/api/health/',
+            status=200,
+            duration_ms=10,
+            size_bytes=128
+        )
 
     def test_packets_list_api(self):
         url = reverse('sniffer-packets')

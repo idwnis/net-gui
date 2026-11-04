@@ -42,17 +42,9 @@ class DNSQueriesListAPIView(APIView):
     """Returns historical captured DNS queries."""
     @extend_schema(summary="List DNS Queries")
     def get(self, request):
+        # Clean out legacy seeded queries
+        DNSQueryLog.objects.filter(client_ip__in=['192.168.1.140', '192.168.1.155', '192.168.1.105']).delete()
         queries = DNSQueryLog.objects.all()[:100]
-
-        # Seed initial queries if DB is fresh
-        if not queries.exists():
-            DNSSinkholeService.process_query('telemetry.samsung.com', '192.168.1.140', 'Samsung QLED TV', 'A')
-            DNSSinkholeService.process_query('googleads.g.doubleclick.net', '192.168.1.155', 'iPhone 15 Pro', 'HTTPS')
-            DNSSinkholeService.process_query('api.github.com', '192.168.1.105', 'MacBook Pro', 'A')
-            DNSSinkholeService.process_query('metrics.icloud.com', '192.168.1.155', 'iPhone 15 Pro', 'AAAA')
-            DNSSinkholeService.process_query('registry.npmjs.org', '192.168.1.105', 'MacBook Pro', 'A')
-            queries = DNSQueryLog.objects.all()[:100]
-
         return Response([q.to_dict() for q in queries], status=status.HTTP_200_OK)
 
 class DNSQueryProcessAPIView(APIView):

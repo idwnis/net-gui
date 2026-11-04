@@ -88,61 +88,9 @@ class SnifferService:
 
     @classmethod
     def get_packets(cls, limit: int = 100) -> List[Dict[str, Any]]:
+        # Purge legacy fake seed packets
+        SnifferPacket.objects.filter(source_app__in=['AI Agent Service (3000)', 'Django Storefront (8000)']).delete()
         packets = SnifferPacket.objects.all()[:limit]
-
-        # Seed initial packets if DB is fresh
-        if not packets.exists():
-            cls.record_packet(
-                method='GET',
-                url='http://localhost:8000/api/radar/devices/',
-                status=200,
-                duration_ms=14,
-                size_bytes=2480,
-                source_app='Vite Frontend (5173)',
-                content_type='application/json',
-                request_headers={'accept': 'application/json', 'user-agent': 'Net GUI/2.0'},
-                response_headers={'content-type': 'application/json'},
-                response_body_preview='{"status":"ok","total":7,"devices":[{"ip":"192.168.1.1","status":"online"}]}'
-            )
-            cls.record_packet(
-                method='POST',
-                url='https://api.openai.com/v1/chat/completions',
-                status=401,
-                duration_ms=182,
-                size_bytes=420,
-                source_app='AI Agent Service (3000)',
-                content_type='application/json',
-                request_headers={'authorization': 'Bearer invalid_or_expired_key', 'content-type': 'application/json'},
-                response_headers={'content-type': 'application/json'},
-                request_body_preview='{"model":"gpt-4o","messages":[{"role":"user","content":"Diagnose error"}]}',
-                response_body_preview='{"error":{"message":"Incorrect API key provided: invalid_***. Check your settings.","type":"invalid_request_error"}}'
-            )
-            cls.record_packet(
-                method='POST',
-                url='http://127.0.0.1:8000/api/checkout/session',
-                status=500,
-                duration_ms=44,
-                size_bytes=1240,
-                source_app='Django Storefront (8000)',
-                content_type='application/json',
-                request_headers={'content-type': 'application/json'},
-                response_headers={'content-type': 'text/html'},
-                response_body_preview='OperationalError: could not connect to server: Connection refused (PostgreSQL :5432)'
-            )
-            cls.record_packet(
-                method='WS',
-                url='ws://localhost:5173/',
-                status=101,
-                duration_ms=0,
-                size_bytes=310,
-                source_app='Vite HMR WebSocket',
-                content_type='websocket/binary',
-                request_headers={'upgrade': 'websocket', 'connection': 'Upgrade'},
-                response_headers={'upgrade': 'websocket'},
-                response_body_preview='{"type":"connected"}'
-            )
-            packets = SnifferPacket.objects.all()[:limit]
-
         return [p.to_dict() for p in packets]
 
     @classmethod

@@ -20,56 +20,66 @@ class ProjectsListCreateAPIView(APIView):
     def get(self, request):
         projects = DevProject.objects.all()
 
-        # Seed current workspace if DB is fresh
-        if not projects.exists():
-            workspace_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            analysis = StackDetectorService.inspect_directory(workspace_path)
+        # Ensure active workspace project exists
+        from django.conf import settings
+        workspace_path = str(settings.BASE_DIR.parent)
 
-            proj = DevProject.objects.create(
-                project_id='proj-netpulse',
-                name='Net GUI Core Suite',
-                description='Vite React frontend with Django ASGI high-performance network radar',
-                source_type='local_folder',
-                path=workspace_path,
-                detected_stack={
-                    'frameworks': analysis['frameworks'],
-                    'runtimes': analysis['runtimes'],
-                    'filesFound': analysis['filesFound'],
+        # Update or register real workspace
+        DevProject.objects.filter(project_id='proj-netpulse').delete()
+        proj, created = DevProject.objects.update_or_create(
+            project_id='proj-netgui',
+            defaults={
+                'name': 'Net GUI Core Suite',
+                'description': 'Network Radar & Developer Cockpit Suite',
+                'source_type': 'local_folder',
+                'path': workspace_path,
+                'detected_stack': {
+                    'frameworks': ['Django', 'React', 'Vite', 'TailwindCSS'],
+                    'runtimes': ['Python 3', 'Node.js'],
+                    'filesFound': ['package.json', 'manage.py', 'vite.config.ts'],
                 },
-                env_variables=[
+                'env_variables': [
                     {'key': 'DEBUG', 'value': 'True', 'isSecret': False, 'status': 'valid'},
-                    {'key': 'DJANGO_SECRET_KEY', 'value': 'netpulse_sec_token_99182a', 'isSecret': True, 'status': 'valid'},
                     {'key': 'BACKEND_PORT', 'value': '8000', 'isSecret': False, 'status': 'valid'},
                 ]
-            )
+            }
+        )
 
-            # Create default services
+        if created or proj.services.count() == 0:
+            proj.services.all().delete()
             ProjectService.objects.create(
                 project=proj,
                 service_id='svc-vite-client',
-                name='Vite Frontend Client',
+                name='Vite React Client',
                 category='node',
-                command='npm run dev',
+                command='npm run dev:frontend',
                 cwd=os.path.join(workspace_path, 'frontend'),
                 port=5173,
-                status='stopped',
-                custom_domain={'enabled': True, 'domain': 'netpulse.test', 'targetPort': 5173, 'sslActive': True}
+                status='running',
+                custom_domain={'enabled': True, 'domain': 'netgui.local', 'targetPort': 5173, 'sslActive': False}
             )
-
             ProjectService.objects.create(
                 project=proj,
                 service_id='svc-django-backend',
-                name='Django ASGI Engine',
+                name='Django ASGI Core',
                 category='django',
-                command='backend/venv/bin/daphne -b 0.0.0.0 -p 8000 config.asgi:application',
+                command='npm run server:start',
                 cwd=workspace_path,
                 port=8000,
                 status='running',
-                custom_domain={'enabled': True, 'domain': 'api.netpulse.test', 'targetPort': 8000, 'sslActive': True}
+                custom_domain={'enabled': True, 'domain': 'api.netgui.local', 'targetPort': 8000, 'sslActive': False}
+            )
+            ProjectService.objects.create(
+                project=proj,
+                service_id='svc-desktop',
+                name='Electron Desktop Cockpit',
+                category='custom',
+                command='npm run desktop:start',
+                cwd=os.path.join(workspace_path, 'desktop'),
+                status='running'
             )
 
-            projects = DevProject.objects.all()
-
+        projects = DevProject.objects.all()
         return Response([p.to_dict() for p in projects], status=status.HTTP_200_OK)
 
     @extend_schema(summary="Register New Dev Project")

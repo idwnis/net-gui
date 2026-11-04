@@ -6,6 +6,15 @@ from apps.watchdog.services import SSLWatchdogService
 class WatchdogTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        from apps.watchdog.models import DomainWatchdogItem
+        DomainWatchdogItem.objects.create(
+            domain_id='test-dom',
+            domain='example.com',
+            status='valid',
+            ssl_expiry_days=90,
+            dns_records=[{'type': 'A', 'value': '93.184.216.34', 'ttl': 300}],
+            uptime_percent=100.0
+        )
 
     def test_get_domains(self):
         domains = SSLWatchdogService.get_domains()
