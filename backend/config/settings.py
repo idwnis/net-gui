@@ -88,7 +88,7 @@ CHANNEL_LAYERS = {
 # Database & Media Directories
 # Supports NETPULSE_DATA_DIR environment variable for packaged Desktop (macOS/Win)
 # and custom server persistent volumes. Default: local backend directory.
-NETPULSE_DATA_DIR = os.environ.get('NETPULSE_DATA_DIR')
+NETPULSE_DATA_DIR = os.environ.get('NETGUI_DATA_DIR') or os.environ.get('NETPULSE_DATA_DIR')
 if NETPULSE_DATA_DIR:
     DATA_PATH = Path(NETPULSE_DATA_DIR)
     DATA_PATH.mkdir(parents=True, exist_ok=True)
@@ -105,6 +105,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': DB_PATH,
+        'OPTIONS': {
+            'timeout': 30,
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
+        },
     }
 }
 

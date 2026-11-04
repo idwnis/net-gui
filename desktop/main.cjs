@@ -75,16 +75,22 @@ async function launchBackend() {
       ? path.join(backendDir, 'venv', 'Scripts', 'python.exe')
       : path.join(backendDir, 'venv', 'bin', 'python');
 
-    const venvDaphne = process.platform === 'win32'
-      ? path.join(backendDir, 'venv', 'Scripts', 'daphne.exe')
-      : path.join(backendDir, 'venv', 'bin', 'daphne');
-
-    if (require('fs').existsSync(venvDaphne)) {
-      binaryPath = venvDaphne;
-      args = ['-b', '127.0.0.1', '-p', String(backendPort), 'config.asgi:application'];
+    const sidecarScript = path.join(backendDir, 'sidecar_entry.py');
+    if (require('fs').existsSync(sidecarScript) && require('fs').existsSync(venvPython)) {
+      binaryPath = venvPython;
+      args = [sidecarScript, '-b', '127.0.0.1', '-p', String(backendPort)];
     } else {
-      binaryPath = require('fs').existsSync(venvPython) ? venvPython : 'python3';
-      args = ['manage.py', 'runserver', `127.0.0.1:${backendPort}`];
+      const venvDaphne = process.platform === 'win32'
+        ? path.join(backendDir, 'venv', 'Scripts', 'daphne.exe')
+        : path.join(backendDir, 'venv', 'bin', 'daphne');
+
+      if (require('fs').existsSync(venvDaphne)) {
+        binaryPath = venvDaphne;
+        args = ['-b', '127.0.0.1', '-p', String(backendPort), 'config.asgi:application'];
+      } else {
+        binaryPath = require('fs').existsSync(venvPython) ? venvPython : 'python3';
+        args = ['manage.py', 'runserver', `127.0.0.1:${backendPort}`];
+      }
     }
   }
 

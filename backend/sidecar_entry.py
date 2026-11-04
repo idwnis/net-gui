@@ -41,12 +41,15 @@ def main():
     # Auto-run database migrations if not skipped
     if not args.no_migrate:
         from django.core.management import call_command
+        from django.db import connection
         try:
             print(f"[Net GUI Core] Checking database migrations...")
             call_command("migrate", interactive=False, verbosity=0)
+            connection.close()
             print(f"[Net GUI Core] Database migrations verified.")
         except Exception as e:
             print(f"[Net GUI Core] Migration warning: {e}", file=sys.stderr)
+            connection.close()
 
     # Initialize and execute Daphne ASGI Server
     from config.asgi import application
