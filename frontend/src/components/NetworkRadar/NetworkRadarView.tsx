@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NetworkDevice, PingTarget } from '../../types';
-import { MOCK_PING_TARGETS } from '../../mock/data';
+import * as api from '../../services/api';
 import { 
   Laptop, 
   Smartphone, 
@@ -51,9 +51,18 @@ export const NetworkRadarView: React.FC<NetworkRadarViewProps> = ({
   const [selectedDevice, setSelectedDevice] = useState<NetworkDevice | null>(null);
   const [isPortModalOpen, setIsPortModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [pingTargets, setPingTargets] = useState<PingTarget[]>(MOCK_PING_TARGETS);
+  const [pingTargets, setPingTargets] = useState<PingTarget[]>([]);
   const [isPinging, setIsPinging] = useState(false);
   const [wolStatusMessage, setWolStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch live baseline ping targets & jitter from backend
+    api.fetchPingTargets()
+      .then(res => {
+        if (res && res.targets) setPingTargets(res.targets);
+      })
+      .catch(e => console.error('Failed to fetch ping targets:', e));
+  }, []);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -63,22 +72,26 @@ export const NetworkRadarView: React.FC<NetworkRadarViewProps> = ({
 
   const handleWakeOnLan = (device: NetworkDevice, e: React.MouseEvent) => {
     e.stopPropagation();
-    setWolStatusMessage(`⚡ WoL Magic Packet dispatched to ${device.hostname} (${device.mac}) on UDP:9`);
-    setTimeout(() => {
-      setWolStatusMessage(null);
-    }, 3500);
+    api.sendWakeOnLan(device.mac)
+      .then(res => {
+        setWolStatusMessage(res.message || `⚡ WoL Magic Packet broadcasted to ${device.mac}`);
+      })
+      .catch(err => {
+        setWolStatusMessage(`WoL error: ${err.message || 'Transmission failed'}`);
+      })
+      .finally(() => {
+        setTimeout(() => setWolStatusMessage(null), 4000);
+      });
   };
 
   const handleRunPingTest = () => {
     setIsPinging(true);
-    setTimeout(() => {
-      setPingTargets(prev => prev.map(t => ({
-        ...t,
-        latencyMs: Math.max(1, +(t.latencyMs + (Math.random() * 2 - 1)).toFixed(1)),
-        history: [...t.history.slice(1), +(t.latencyMs + (Math.random() * 2 - 1)).toFixed(1)]
-      })));
-      setIsPinging(false);
-    }, 700);
+    api.testPingTargets()
+      .then(res => {
+        if (res && res.targets) setPingTargets(res.targets);
+      })
+      .catch(e => console.error('Ping test error:', e))
+      .finally(() => setIsPinging(false));
   };
 
   const getDeviceBadge = (device: NetworkDevice) => {

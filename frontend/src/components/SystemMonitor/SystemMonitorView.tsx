@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SystemTelemetry } from '../../types';
-import { MOCK_SYSTEM_TELEMETRY } from '../../mock/data';
+import * as api from '../../services/api';
+import { createTelemetrySocket } from '../../services/sockets';
 import { 
   Activity, 
   Cpu, 
@@ -18,23 +19,52 @@ import {
   LiquidGlassBadge 
 } from '../Glisse';
 
+const INITIAL_TELEMETRY: SystemTelemetry = {
+  cpuUsagePercent: 0,
+  cpuCores: [],
+  memoryUsedGb: 0,
+  memoryTotalGb: 16,
+  networkInKbps: 0,
+  networkOutKbps: 0,
+  temperatureC: 45,
+  topProcesses: []
+};
+
 export const SystemMonitorView: React.FC = () => {
-  const [telemetry, setTelemetry] = useState<SystemTelemetry>(MOCK_SYSTEM_TELEMETRY);
+  const [telemetry, setTelemetry] = useState<SystemTelemetry>(INITIAL_TELEMETRY);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizedDone, setOptimizedDone] = useState(false);
 
+  useEffect(() => {
+    // 1. Fetch live snapshot
+    api.fetchTelemetry().then(data => {
+      if (data) setTelemetry(data);
+    }).catch(err => console.error('Failed to fetch initial telemetry:', err));
+
+    // 2. Stream live WebSocket updates (CPU, RAM, bandwidth, disks)
+    const socket = createTelemetrySocket((liveData) => {
+      if (liveData) {
+        setTelemetry(liveData);
+      }
+    });
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
   const handleOptimizeRAM = () => {
     setIsOptimizing(true);
-    setTimeout(() => {
-      setTelemetry(prev => ({
-        ...prev,
-        cpuUsagePercent: 18,
-        memoryUsedGb: 7.2
-      }));
-      setIsOptimizing(false);
-      setOptimizedDone(true);
-      setTimeout(() => setOptimizedDone(false), 3000);
-    }, 1200);
+    api.optimizeRAM()
+      .then(() => {
+        setOptimizedDone(true);
+        api.fetchTelemetry().then(data => {
+          if (data) setTelemetry(data);
+        });
+        setTimeout(() => setOptimizedDone(false), 3000);
+      })
+      .catch(e => console.error('RAM optimization error:', e))
+      .finally(() => setIsOptimizing(false));
   };
 
   const memPercent = Math.round((telemetry.memoryUsedGb / telemetry.memoryTotalGb) * 100);

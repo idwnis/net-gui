@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DomainWatchdogItem } from '../../types';
-import { MOCK_WATCHDOG_DOMAINS } from '../../mock/data';
+import * as api from '../../services/api';
 import { 
   Lock, 
   ExternalLink, 
-  Plus 
+  Plus,
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { 
   LiquidGlassCard, 
@@ -14,32 +16,62 @@ import {
 } from '../Glisse';
 
 export const DomainWatchdogView: React.FC = () => {
-  const [domains, setDomains] = useState<DomainWatchdogItem[]>(MOCK_WATCHDOG_DOMAINS);
+  const [domains, setDomains] = useState<DomainWatchdogItem[]>([]);
   const [newDomain, setNewDomain] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
 
-  const handleAddDomain = () => {
+  const loadDomains = () => {
+    api.fetchWatchdogDomains().then(data => {
+      if (data) setDomains(data);
+    }).catch(e => console.error('Error fetching watchdog domains:', e));
+  };
+
+  useEffect(() => {
+    loadDomains();
+  }, []);
+
+  const handleAddDomain = async () => {
     if (!newDomain.trim()) return;
     const clean = newDomain.trim().toLowerCase().replace(/^https?:\/\//, '');
 
-    const added: DomainWatchdogItem = {
-      id: `dom-${Date.now()}`,
-      domain: clean,
-      status: 'valid',
-      sslIssuer: "Let's Encrypt Authority X3",
-      sslExpiryDays: 88,
-      validUntil: '2027-02-01',
-      autoRenew: true,
-      dnsRecords: [
-        { type: 'A', value: '76.76.21.21', ttl: 300 }
-      ],
-      uptimePercent: 100.0,
-      lastChecked: 'Just now'
-    };
+    setIsSubmitting(true);
+    try {
+      const added = await api.addWatchdogDomain(clean);
+      if (added) {
+        setDomains(prev => [added, ...prev.filter(d => d.id !== added.id)]);
+        setNewDomain('');
+        setIsAdding(false);
+      }
+    } catch (e) {
+      console.error('Failed to add watchdog domain:', e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    setDomains(prev => [added, ...prev]);
-    setNewDomain('');
-    setIsAdding(false);
+  const handleCheckDomain = async (domainId: string) => {
+    setCheckingId(domainId);
+    try {
+      const updated = await api.checkWatchdogDomain(domainId);
+      if (updated) {
+        setDomains(prev => prev.map(d => d.id === domainId ? updated : d));
+      }
+    } catch (e) {
+      console.error('Failed to check domain:', e);
+    } finally {
+      setCheckingId(null);
+    }
+  };
+
+  const handleDeleteDomain = async (domainId: string) => {
+    try {
+      await api.deleteWatchdogDomain(domainId);
+      setDomains(prev => prev.filter(d => d.id !== domainId));
+    } catch (e) {
+      console.error('Failed to delete watchdog domain:', e);
+    }
   };
 
   return (
@@ -79,9 +111,10 @@ export const DomainWatchdogView: React.FC = () => {
             variant="primary"
             size="md"
             onClick={handleAddDomain}
+            isLoading={isSubmitting}
             className="w-full sm:w-auto"
           >
-            Add Watchdog
+            {isSubmitting ? 'Verifying SSL & DNS...' : 'Add Watchdog'}
           </LiquidGlassButton>
         </LiquidGlassCard>
       )}
@@ -90,6 +123,7 @@ export const DomainWatchdogView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {domains.map(dom => {
           const isExpiring = dom.sslExpiryDays <= 14;
+          const isChecking = checkingId === dom.id;
 
           return (
             <LiquidGlassCard
@@ -104,7 +138,24 @@ export const DomainWatchdogView: React.FC = () => {
                     {isExpiring ? `Expires in ${dom.sslExpiryDays} days` : `${dom.sslExpiryDays} days valid`}
                   </LiquidGlassBadge>
 
-                  <span className="text-[10px] font-mono text-slate-400">{dom.lastChecked}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-slate-400">{dom.lastChecked}</span>
+                    <button
+                      onClick={() => handleCheckDomain(dom.id)}
+                      disabled={isChecking}
+                      className="p-1 text-slate-400 hover:text-blue-500 rounded transition-colors"
+                      title="Re-check SSL Certificate & DNS"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isChecking ? 'animate-spin text-blue-500' : ''}`} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDomain(dom.id)}
+                      className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors"
+                      title="Remove Domain"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-3">
@@ -125,12 +176,14 @@ export const DomainWatchdogView: React.FC = () => {
 
               {/* DNS Records & Uptime */}
               <div className="space-y-2 pt-3 border-t border-black/[0.05] dark:border-white/[0.06] text-xs">
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                  <span className="text-[11px] text-slate-400">DNS Resolution:</span>
-                  <span className="font-mono text-blue-600 dark:text-sky-300 text-[11px] font-medium">
-                    {dom.dnsRecords[0].type} ➔ {dom.dnsRecords[0].value}
-                  </span>
-                </div>
+                {dom.dnsRecords && dom.dnsRecords.length > 0 && (
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                    <span className="text-[11px] text-slate-400">DNS Resolution:</span>
+                    <span className="font-mono text-blue-600 dark:text-sky-300 text-[11px] font-medium">
+                      {dom.dnsRecords[0].type} ➔ {dom.dnsRecords[0].value}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
                   <span className="text-[11px] text-slate-400">Uptime Score:</span>

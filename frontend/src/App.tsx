@@ -9,9 +9,9 @@ import { APISnifferView } from './components/APISniffer/APISnifferView';
 import { SystemMonitorView } from './components/SystemMonitor/SystemMonitorView';
 import { AISwitchboardView } from './components/AISwitchboard/AISwitchboardView';
 import { DomainWatchdogView } from './components/DomainWatchdog/DomainWatchdogView';
-import { MOCK_DEVICES, MOCK_SYSTEM_PORTS, MOCK_PROJECTS } from './mock/data';
 import { NetworkDevice, SystemPort, DevProject, AISettings } from './types';
 import * as api from './services/api';
+import { createRadarSocket } from './services/sockets';
 
 const DEFAULT_AI_SETTINGS: AISettings = {
   provider: 'gemini',
@@ -24,10 +24,10 @@ const DEFAULT_AI_SETTINGS: AISettings = {
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'radar' | 'ports' | 'runner' | 'vpn' | 'drop' | 'sniffer' | 'system' | 'ai' | 'watchdog'>('runner');
   
-  // State
-  const [devices, setDevices] = useState<NetworkDevice[]>(MOCK_DEVICES);
-  const [systemPorts, setSystemPorts] = useState<SystemPort[]>(MOCK_SYSTEM_PORTS);
-  const [projects, setProjects] = useState<DevProject[]>(MOCK_PROJECTS);
+  // Real State - Initialized empty and populated live from Django ASGI backend
+  const [devices, setDevices] = useState<NetworkDevice[]>([]);
+  const [systemPorts, setSystemPorts] = useState<SystemPort[]>([]);
+  const [projects, setProjects] = useState<DevProject[]>([]);
   
   // AI Settings State (persisted in localStorage)
   const [aiSettings, setAiSettings] = useState<AISettings>(() => {
@@ -52,19 +52,43 @@ export const App: React.FC = () => {
   const [isScanningNetwork, setIsScanningNetwork] = useState(false);
   const [isLoadingPorts, setIsLoadingPorts] = useState(false);
 
-  // Sync state with live Django Backend on initial mount
+  // Sync state with live Django Backend on mount
   useEffect(() => {
+    // 1. Fetch live network devices (triggers initial sweep if empty)
     api.fetchNetworkDevices().then(res => {
-      if (res.devices && res.devices.length > 0) setDevices(res.devices);
-    }).catch(e => console.debug('Backend offline, using mock devices:', e));
+      if (res.devices && res.devices.length > 0) {
+        setDevices(res.devices);
+      } else {
+        setIsScanningNetwork(true);
+        api.triggerSubnetScan().then(scanRes => {
+          if (scanRes.devices) setDevices(scanRes.devices);
+        }).finally(() => setIsScanningNetwork(false));
+      }
+    }).catch(e => console.error('Error fetching devices:', e));
 
+    // 2. Fetch live system listening sockets
     api.fetchSystemPorts(true).then(res => {
-      if (res.ports && res.ports.length > 0) setSystemPorts(res.ports);
-    }).catch(e => console.debug('Backend offline, using mock ports:', e));
+      if (res.ports) setSystemPorts(res.ports);
+    }).catch(e => console.error('Error fetching system ports:', e));
 
+    // 3. Fetch live supervised projects
     api.fetchProjects().then(projs => {
-      if (projs && projs.length > 0) setProjects(projs);
-    }).catch(e => console.debug('Backend offline, using mock projects:', e));
+      if (projs) setProjects(projs);
+    }).catch(e => console.error('Error fetching projects:', e));
+
+    // 4. Connect to live Radar WebSocket for newly discovered devices
+    const radarSocket = createRadarSocket((msg) => {
+      if (msg.type === 'device_discovered' && msg.device) {
+        setDevices(prev => {
+          const exists = prev.some(d => d.id === msg.device.id);
+          return exists ? prev.map(d => d.id === msg.device.id ? msg.device : d) : [msg.device, ...prev];
+        });
+      }
+    });
+
+    return () => {
+      radarSocket.close();
+    };
   }, []);
 
   // Network Scanner trigger

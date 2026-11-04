@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VpnGatewayConfig, DNSQueryLog, DNSSinkholeStats } from '../../types';
-import { MOCK_DNS_QUERIES, MOCK_DNS_SINKHOLE_STATS } from '../../mock/data';
+import * as api from '../../services/api';
+import { createDnsSocket } from '../../services/sockets';
 import { 
   Shield, 
   ShieldCheck, 
@@ -33,14 +34,54 @@ export const VpnGatewayView: React.FC<VpnGatewayViewProps> = ({ hostIp }) => {
     bindAddress: '0.0.0.0',
     proxyPort: 7890,
     allowAllSubnet: true,
-    trafficRoutedBytes: 1948200000, // ~1.94 GB
-    activeClientsCount: 3,
-    upstreamInterface: 'utun4 (WireGuard/VPN)',
+    trafficRoutedBytes: 0,
+    activeClientsCount: 0,
+    upstreamInterface: 'utun4 (VPN)',
     dnsSinkholeEnabled: true
   });
 
-  const [dnsStats, setDnsStats] = useState<DNSSinkholeStats>(MOCK_DNS_SINKHOLE_STATS);
-  const [dnsQueries] = useState<DNSQueryLog[]>(MOCK_DNS_QUERIES);
+  const [dnsStats, setDnsStats] = useState<DNSSinkholeStats>({
+    isEnabled: true,
+    totalQueries: 0,
+    blockedQueries: 0,
+    blockPercent: 0,
+    domainsOnBlocklist: 145000,
+    activeListenPort: 53
+  });
+  const [dnsQueries, setDnsQueries] = useState<DNSQueryLog[]>([]);
+
+  useEffect(() => {
+    // 1. Fetch live Gateway config
+    api.fetchGatewayConfig().then(cfg => {
+      if (cfg) setVpnConfig(cfg);
+    }).catch(e => console.error('Error fetching gateway config:', e));
+
+    // 2. Fetch live DNS Sinkhole stats
+    api.fetchDnsStats().then(stats => {
+      if (stats) setDnsStats(stats);
+    }).catch(e => console.error('Error fetching DNS stats:', e));
+
+    // 3. Fetch live DNS Queries
+    api.fetchDnsQueries().then(queries => {
+      if (queries) setDnsQueries(queries);
+    }).catch(e => console.error('Error fetching DNS queries:', e));
+
+    // 4. Connect to live WebSocket for real-time DNS queries
+    const dnsSocket = createDnsSocket((msg) => {
+      if (msg && msg.query) {
+        setDnsQueries(prev => [msg.query, ...prev.slice(0, 49)]);
+        setDnsStats(prev => ({
+          ...prev,
+          totalQueries: prev.totalQueries + 1,
+          blockedQueries: msg.query.status === 'blocked' ? prev.blockedQueries + 1 : prev.blockedQueries
+        }));
+      }
+    });
+
+    return () => {
+      dnsSocket.close();
+    };
+  }, []);
 
   const [copiedProxy, setCopiedProxy] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState(false);
@@ -103,7 +144,10 @@ export const VpnGatewayView: React.FC<VpnGatewayViewProps> = ({ hostIp }) => {
             <div className="flex items-center gap-3">
               <LiquidGlassSwitch
                 checked={vpnConfig.isEnabled}
-                onChange={(checked) => setVpnConfig(prev => ({ ...prev, isEnabled: checked }))}
+                onChange={(checked) => {
+                  setVpnConfig(prev => ({ ...prev, isEnabled: checked }));
+                  api.toggleGateway(checked).catch(e => console.error('Toggle gateway error:', e));
+                }}
                 label={vpnConfig.isEnabled ? 'Gateway Sharing Active' : 'Gateway Sharing Paused'}
               />
               <LiquidGlassBadge variant={vpnConfig.isEnabled ? 'success' : 'neutral'} dot pulse={vpnConfig.isEnabled}>

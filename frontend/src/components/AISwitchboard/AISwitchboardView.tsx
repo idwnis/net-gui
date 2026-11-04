@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LocalLLMModel } from '../../types';
-import { MOCK_LOCAL_MODELS } from '../../mock/data';
+import * as api from '../../services/api';
 import { 
   Cpu, 
   Sparkles, 
@@ -16,56 +16,76 @@ import {
 } from '../Glisse';
 
 export const AISwitchboardView: React.FC = () => {
-  const [models, setModels] = useState<LocalLLMModel[]>(MOCK_LOCAL_MODELS);
-  const [selectedModel, setSelectedModel] = useState<LocalLLMModel>(models[0]);
+  const [models, setModels] = useState<LocalLLMModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<LocalLLMModel | null>(null);
   const [promptText, setPromptText] = useState('Explain how ARP discovery works in 2 concise sentences.');
   const [benchmarkResult, setBenchmarkResult] = useState<string | null>(null);
   const [isRunningInference, setIsRunningInference] = useState(false);
   const [freedMemoryToast, setFreedMemoryToast] = useState<string | null>(null);
 
+  useEffect(() => {
+    api.fetchSwitchboardModels().then(data => {
+      if (data && data.models) {
+        setModels(data.models);
+        if (data.models.length > 0) {
+          setSelectedModel(data.models[0]);
+        }
+      }
+    }).catch(e => console.error('Error fetching switchboard models:', e));
+  }, []);
+
   const totalVramAllocated = models
     .filter(m => m.status === 'loaded_in_vram')
-    .reduce((acc, m) => acc + m.vramUsageGb, 0);
+    .reduce((acc, m) => acc + (m.vramUsageGb || 0), 0);
 
-  const handleUnloadFromVram = (modelId: string) => {
+  const handleUnloadFromVram = async (modelId: string) => {
     const target = models.find(m => m.id === modelId);
-    if (!target) return;
-    const freed = target.vramUsageGb;
-
-    setModels(prev => prev.map(m => {
-      if (m.id === modelId) {
-        return { ...m, status: 'on_disk', vramUsageGb: 0 };
+    try {
+      const res = await api.unloadModelFromVram(modelId);
+      if (res && res.model) {
+        setModels(prev => prev.map(m => m.id === modelId ? res.model : m));
+        if (selectedModel?.id === modelId) {
+          setSelectedModel(res.model);
+        }
+        setFreedMemoryToast(`Reclaimed ${target?.vramUsageGb || 2.2} GB Unified Memory by unloading ${res.model.tag}`);
+        setTimeout(() => setFreedMemoryToast(null), 3000);
       }
-      return m;
-    }));
-
-    setFreedMemoryToast(`Reclaimed ${freed} GB Unified Memory by unloading ${target.tag}`);
-    setTimeout(() => setFreedMemoryToast(null), 3000);
+    } catch (e) {
+      console.error('Failed to unload model from VRAM:', e);
+    }
   };
 
-  const handleLoadIntoVram = (modelId: string) => {
-    setModels(prev => prev.map(m => {
-      if (m.id === modelId) {
-        const alloc = +(m.sizeGb * 1.1).toFixed(1);
-        return { ...m, status: 'loaded_in_vram', vramUsageGb: alloc };
+  const handleLoadIntoVram = async (modelId: string) => {
+    try {
+      const res = await api.loadModelInVram(modelId);
+      if (res && res.model) {
+        setModels(prev => prev.map(m => m.id === modelId ? res.model : m));
+        if (selectedModel?.id === modelId) {
+          setSelectedModel(res.model);
+        }
       }
-      return m;
-    }));
+    } catch (e) {
+      console.error('Failed to load model into VRAM:', e);
+    }
   };
 
-  const handleRunPrompt = () => {
+  const handleRunPrompt = async () => {
+    if (!selectedModel) return;
     setIsRunningInference(true);
     setBenchmarkResult(null);
 
-    setTimeout(() => {
-      setBenchmarkResult(
-        `[${selectedModel.tag} @ Apple Metal Core]\n` +
-        `ARP (Address Resolution Protocol) broadcasts a query to the LAN asking which device owns a specific IP address. ` +
-        `The host with that IP replies with its MAC address, allowing Ethernet frames to be routed locally.\n\n` +
-        `Stats: 48.6 tokens/sec • Time-to-first-token: 180ms • VRAM: ${selectedModel.vramUsageGb || selectedModel.sizeGb} GB`
-      );
+    try {
+      const res = await api.benchmarkModel(selectedModel.id, promptText);
+      if (res && res.fullOutput) {
+        setBenchmarkResult(res.fullOutput);
+      } else if (res && res.response) {
+        setBenchmarkResult(res.response);
+      }
+    } catch (e: any) {
+      setBenchmarkResult(`Error running benchmark: ${e.message || e}`);
+    } finally {
       setIsRunningInference(false);
-    }, 900);
+    }
   };
 
   return (
@@ -110,7 +130,7 @@ export const AISwitchboardView: React.FC = () => {
               interactive
               onClick={() => setSelectedModel(model)}
               className={`p-4 flex flex-col justify-between gap-3 border ${
-                selectedModel.id === model.id
+                selectedModel?.id === model.id
                   ? 'border-blue-500 dark:border-blue-400 bg-blue-500/10 dark:bg-blue-500/15'
                   : ''
               }`}
@@ -178,7 +198,7 @@ export const AISwitchboardView: React.FC = () => {
             <Sparkles className="w-5 h-5 text-blue-500 dark:text-sky-400" />
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                Live Inference Playground ({selectedModel.tag})
+                Live Inference Playground ({selectedModel?.tag || 'Select Model'})
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Execute prompts and measure token generation speed on Apple Silicon Metal cores.

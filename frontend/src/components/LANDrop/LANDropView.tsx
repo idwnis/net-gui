@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DropFileItem, DropDevice } from '../../types';
-import { MOCK_DROP_DEVICES, MOCK_DROP_ITEMS } from '../../mock/data';
+import * as api from '../../services/api';
+import { createLandropSocket } from '../../services/sockets';
 import { 
   Send, 
   Download, 
@@ -27,14 +28,38 @@ interface LANDropViewProps {
 }
 
 export const LANDropView: React.FC<LANDropViewProps> = ({ hostIp }) => {
-  const [devices] = useState<DropDevice[]>(MOCK_DROP_DEVICES);
-  const [files, setFiles] = useState<DropFileItem[]>(MOCK_DROP_ITEMS);
+  const [devices, setDevices] = useState<DropDevice[]>([]);
+  const [files, setFiles] = useState<DropFileItem[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<string>('all');
   const [isDragging, setIsDragging] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isSimulatingSend, setIsSimulatingSend] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const dropUrl = `http://${hostIp}:7890/drop`;
+  const dropUrl = `http://${hostIp}:8000/`;
+
+  useEffect(() => {
+    // 1. Fetch live local devices & peers
+    api.fetchLandropDevices().then(devs => {
+      if (devs) setDevices(devs);
+    }).catch(e => console.error('Error fetching landrop devices:', e));
+
+    // 2. Fetch live file transfers
+    api.fetchLandropFiles().then(f => {
+      if (f) setFiles(f);
+    }).catch(e => console.error('Error fetching landrop files:', e));
+
+    // 3. Connect to live WebSocket for P2P incoming transfers
+    const landropSocket = createLandropSocket((msg) => {
+      if (msg && msg.file) {
+        setFiles(prev => [msg.file, ...prev]);
+      }
+    });
+
+    return () => {
+      landropSocket.close();
+    };
+  }, []);
 
   const copyDropLink = () => {
     navigator.clipboard.writeText(dropUrl);
@@ -42,24 +67,18 @@ export const LANDropView: React.FC<LANDropViewProps> = ({ hostIp }) => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleSimulateSend = () => {
-    setIsSimulatingSend(true);
-    const newFile: DropFileItem = {
-      id: `drop-${Date.now()}`,
-      name: 'screenshot-preview.png',
-      size: 3400000,
-      type: 'image/png',
-      sender: "Den's MacBook Pro",
-      senderDevice: 'MacBook',
-      timestamp: 'Just now',
-      status: 'completed',
-      progress: 100
-    };
-
-    setTimeout(() => {
-      setFiles(prev => [newFile, ...prev]);
-      setIsSimulatingSend(false);
-    }, 1200);
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const res = await api.uploadLandropFile(file);
+      if (res && res.file) {
+        setFiles(prev => [res.file, ...prev]);
+      }
+    } catch (e) {
+      console.error('File upload failed:', e);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -178,11 +197,30 @@ export const LANDropView: React.FC<LANDropViewProps> = ({ hostIp }) => {
 
         {/* Right Column: Drag Drop Staging & File History */}
         <div className="lg:col-span-7 space-y-4">
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                handleFileUpload(e.target.files[0]);
+                e.target.value = '';
+              }
+            }}
+          />
+
           {/* Drag & Drop Zone */}
           <LiquidGlassCard
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleSimulateSend(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFileUpload(e.dataTransfer.files[0]);
+              }
+            }}
             className={`p-6 sm:p-8 border-2 border-dashed text-center transition-colors ${
               isDragging 
                 ? 'border-blue-500 bg-blue-500/10' 
@@ -201,11 +239,11 @@ export const LANDropView: React.FC<LANDropViewProps> = ({ hostIp }) => {
               <LiquidGlassButton
                 variant="primary"
                 size="md"
-                onClick={handleSimulateSend}
-                isLoading={isSimulatingSend}
-                leftIcon={!isSimulatingSend ? <Send className="w-3.5 h-3.5" /> : undefined}
+                onClick={() => fileInputRef.current?.click()}
+                isLoading={isUploading}
+                leftIcon={!isUploading ? <Send className="w-3.5 h-3.5" /> : undefined}
               >
-                {isSimulatingSend ? 'Transferring at 86 MB/s...' : 'Choose File to Send'}
+                {isUploading ? 'Transferring file...' : 'Choose File to Send'}
               </LiquidGlassButton>
             </div>
           </LiquidGlassCard>
