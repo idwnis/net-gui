@@ -28,6 +28,13 @@ export const App: React.FC = () => {
   const [devices, setDevices] = useState<NetworkDevice[]>([]);
   const [systemPorts, setSystemPorts] = useState<SystemPort[]>([]);
   const [projects, setProjects] = useState<DevProject[]>([]);
+
+  // Resolve host network identity dynamically from live discovered devices
+  const localDevice = devices.find(d => d.isLocalHost) || devices.find(d => d.ip !== '127.0.0.1') || devices[0];
+  const hostIp = localDevice?.ip || '10.152.27.29';
+  const subnetCidr = hostIp.includes('.') && hostIp !== '127.0.0.1'
+    ? `${hostIp.split('.').slice(0, 3).join('.')}.0/24`
+    : '10.152.27.0/24';
   
   // AI Settings State (persisted in localStorage)
   const [aiSettings, setAiSettings] = useState<AISettings>(() => {
@@ -308,6 +315,8 @@ export const App: React.FC = () => {
       onlineDevicesCount={onlineDevicesCount}
       openPortsCount={systemPorts.length}
       activeTasksCount={activeTasksCount}
+      localIp={hostIp}
+      subnetCidr={subnetCidr}
     >
       {currentTab === 'radar' && (
         <NetworkRadarView
@@ -332,6 +341,7 @@ export const App: React.FC = () => {
           projects={projects}
           systemPorts={systemPorts}
           aiSettings={aiSettings}
+          hostIp={hostIp}
           onUpdateAISettings={handleUpdateAISettings}
           onStartService={handleStartService}
           onStopService={handleStopService}
@@ -345,11 +355,11 @@ export const App: React.FC = () => {
       )}
 
       {currentTab === 'vpn' && (
-        <VpnGatewayView hostIp="192.168.1.105" />
+        <VpnGatewayView hostIp={hostIp} />
       )}
 
       {currentTab === 'drop' && (
-        <LANDropView hostIp="192.168.1.105" />
+        <LANDropView hostIp={hostIp} />
       )}
 
       {currentTab === 'sniffer' && (

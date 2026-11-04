@@ -64,6 +64,14 @@ export const NetworkRadarView: React.FC<NetworkRadarViewProps> = ({
       .catch(e => console.error('Failed to fetch ping targets:', e));
   }, []);
 
+  // Dynamically resolve local host identity & subnet broadcast from real devices
+  const localHostDevice = devices.find(d => d.isLocalHost) || devices.find(d => d.ip !== '127.0.0.1') || devices[0];
+  const localIp = localHostDevice?.ip || '10.152.27.29';
+  const localHostName = localHostDevice?.hostname || 'Workstation';
+  const subnetBroadcast = localIp.includes('.')
+    ? `${localIp.split('.').slice(0, 3).join('.')}.255`
+    : '255.255.255.255';
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedIp(text);
@@ -320,8 +328,8 @@ export const NetworkRadarView: React.FC<NetworkRadarViewProps> = ({
                   isScanning ? 'animate-pulse' : ''
                 }`}>
                   <Laptop className="w-10 h-10 text-blue-500 dark:text-sky-400 mb-1 drop-shadow-sm" />
-                  <span className="text-[11px] font-bold text-slate-900 dark:text-white tracking-tight">MacBook Pro</span>
-                  <span className="text-[10px] font-mono text-blue-600 dark:text-sky-300/90 font-medium">192.168.1.105</span>
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[120px]" title={localHostName}>{localHostName}</span>
+                  <span className="text-[10px] font-mono text-blue-600 dark:text-sky-300/90 font-medium">{localIp}</span>
                 </div>
               </div>
             </div>
@@ -334,7 +342,7 @@ export const NetworkRadarView: React.FC<NetworkRadarViewProps> = ({
           <div className="mt-4 pt-4 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between text-xs">
             <div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Subnet Broadcast</p>
-              <p className="font-mono text-slate-900 dark:text-white text-xs mt-0.5 font-semibold">192.168.1.255</p>
+              <p className="font-mono text-slate-900 dark:text-white text-xs mt-0.5 font-semibold">{subnetBroadcast}</p>
             </div>
             <div className="text-right">
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Discovered</p>

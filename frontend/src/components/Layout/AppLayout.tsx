@@ -39,6 +39,8 @@ interface AppLayoutProps {
   onlineDevicesCount: number;
   openPortsCount: number;
   activeTasksCount: number;
+  localIp?: string;
+  subnetCidr?: string;
   children: React.ReactNode;
 }
 
@@ -48,11 +50,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onlineDevicesCount,
   openPortsCount,
   activeTasksCount,
+  localIp,
+  subnetCidr,
   children
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const isElectron = typeof window !== 'undefined' && Boolean((window as any).netpulse?.isElectron);
+  const isElectron = typeof window !== 'undefined' && Boolean((window as any).netgui?.isElectron || (window as any).netpulse?.isElectron);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -118,21 +122,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {isElectron && (
             <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 group mr-1">
               <button
-                onClick={() => (window as any).netpulse?.close?.()}
+                onClick={() => ((window as any).netgui || (window as any).netpulse)?.close?.()}
                 className="w-3 h-3 rounded-full bg-[#ff5f57] border border-[#e0443e] inline-flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
                 aria-label="Close"
               >
                 <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-[#800000] leading-none select-none">×</span>
               </button>
               <button
-                onClick={() => (window as any).netpulse?.minimize?.()}
+                onClick={() => ((window as any).netgui || (window as any).netpulse)?.minimize?.()}
                 className="w-3 h-3 rounded-full bg-[#febc2e] border border-[#d89e24] inline-flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
                 aria-label="Minimize"
               >
                 <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-[#7d5600] leading-none select-none">−</span>
               </button>
               <button
-                onClick={() => (window as any).netpulse?.maximize?.()}
+                onClick={() => ((window as any).netgui || (window as any).netpulse)?.maximize?.()}
                 className="w-3 h-3 rounded-full bg-[#28c840] border border-[#1aab29] inline-flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
                 aria-label="Maximize"
               >
@@ -157,7 +161,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             </span>
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] text-[11px] font-medium text-slate-700 dark:text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2EE6A6] shadow-[0_0_5px_rgba(46,230,166,0.8)]" />
-              <span>Subnet 192.168.1.0/24</span>
+              <span>Subnet {subnetCidr || 'LAN Active'}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </div>
           </div>
@@ -304,7 +308,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Local Mac:</span>
-                  <span className="text-slate-900 dark:text-white font-medium">192.168.1.105</span>
+                  <span className="text-slate-900 dark:text-white font-medium">{localIp || '10.152.27.29'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">DNS Sinkhole:</span>
@@ -386,7 +390,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             >
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Local Mac:</span>
-                <span className="text-slate-900 dark:text-white font-medium">192.168.1.105</span>
+                <span className="text-slate-900 dark:text-white font-medium">{localIp || '10.152.27.29'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">DNS Sinkhole:</span>

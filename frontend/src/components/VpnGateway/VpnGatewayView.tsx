@@ -294,31 +294,39 @@ export const VpnGatewayView: React.FC<VpnGatewayViewProps> = ({ hostIp }) => {
               <LiquidGlassCard className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                    Active Routed Devices ({vpnConfig.activeClientsCount})
+                    Active Routed Devices ({vpnConfig.activeClientsCount || 0})
                   </span>
-                  <LiquidGlassBadge variant="success" dot>Online</LiquidGlassBadge>
+                  <LiquidGlassBadge variant={vpnConfig.activeClientsCount > 0 ? "success" : "neutral"} dot>
+                    {vpnConfig.activeClientsCount > 0 ? "Online" : "Idle"}
+                  </LiquidGlassBadge>
                 </div>
 
-                <div className="space-y-2">
-                  {[
-                    { name: 'iPhone 15 Pro', ip: '192.168.1.155', traffic: '820 MB', icon: <Smartphone className="w-3.5 h-3.5 text-blue-500 dark:text-sky-400" /> },
-                    { name: 'Samsung QLED TV', ip: '192.168.1.140', traffic: '1.02 GB', icon: <Tv className="w-3.5 h-3.5 text-emerald-500 dark:text-cyan-400" /> },
-                    { name: 'Linux Workstation', ip: '192.168.1.112', traffic: '104 MB', icon: <Laptop className="w-3.5 h-3.5 text-indigo-500 dark:text-blue-400" /> }
-                  ].map(client => (
-                    <div key={client.ip} className="p-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        {client.icon}
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">{client.name}</p>
-                          <span className="text-[10px] font-mono text-slate-400">{client.ip}</span>
+                {vpnConfig.activeClients && vpnConfig.activeClients.length > 0 ? (
+                  <div className="space-y-2">
+                    {vpnConfig.activeClients.map((client: any) => (
+                      <div key={client.ip} className="p-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <Smartphone className="w-3.5 h-3.5 text-blue-500 dark:text-sky-400" />
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-white">{client.name || client.ip}</p>
+                            <span className="text-[10px] font-mono text-slate-400">{client.ip}</span>
+                          </div>
                         </div>
+                        <span className="font-mono text-[11px] text-blue-600 dark:text-sky-300 font-bold">
+                          {client.traffic || '0 KB'}
+                        </span>
                       </div>
-                      <span className="font-mono text-[11px] text-blue-600 dark:text-sky-300 font-bold">
-                        {client.traffic}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 px-4 text-center rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-dashed border-black/[0.08] dark:border-white/[0.08]">
+                    <Wifi className="w-6 h-6 text-slate-400 dark:text-slate-500 mx-auto mb-2 opacity-60" />
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">No External Devices Routed</p>
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                      Point other devices on your Wi-Fi to HTTP proxy <span className="font-mono text-blue-500">{proxyAddress}</span> to route traffic through this gateway.
+                    </p>
+                  </div>
+                )}
               </LiquidGlassCard>
             </div>
           </div>

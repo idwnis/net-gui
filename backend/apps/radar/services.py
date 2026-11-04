@@ -45,11 +45,14 @@ class WakeOnLanService:
             return False, f"WoL dispatch error: {str(e)}"
 
 class PingBenchmarkService:
-    DEFAULT_TARGETS = [
-        {'id': 'ping-gateway', 'name': 'Local Gateway (Router)', 'host': '192.168.1.1'},
-        {'id': 'ping-cloudflare', 'name': 'Cloudflare Edge (1.1.1.1)', 'host': '1.1.1.1'},
-        {'id': 'ping-google', 'name': 'Google DNS (8.8.8.8)', 'host': '8.8.8.8'},
-    ]
+    @classmethod
+    def get_default_targets(cls) -> List[Dict[str, str]]:
+        gateway_ip = cls.get_default_gateway_ip()
+        return [
+            {'id': 'ping-gateway', 'name': 'Local Gateway (Router)', 'host': gateway_ip},
+            {'id': 'ping-cloudflare', 'name': 'Cloudflare Edge (1.1.1.1)', 'host': '1.1.1.1'},
+            {'id': 'ping-google', 'name': 'Google DNS (8.8.8.8)', 'host': '8.8.8.8'},
+        ]
 
     @classmethod
     def get_default_gateway_ip(cls) -> str:
@@ -70,53 +73,56 @@ class PingBenchmarkService:
     @classmethod
     def initialize_default_targets(cls):
         """Ensures default baseline ping targets exist in database."""
-        gateway_ip = cls.get_default_gateway_ip()
-
-        targets = [
-            {'id': 'ping-gateway', 'name': 'Local Gateway (Router)', 'host': gateway_ip},
-            {'id': 'ping-cloudflare', 'name': 'Cloudflare Edge (1.1.1.1)', 'host': '1.1.1.1'},
-            {'id': 'ping-google', 'name': 'Google DNS (8.8.8.8)', 'host': '8.8.8.8'},
-        ]
+        targets = cls.get_default_targets()
 
         for item in targets:
-            measured = cls.measure_latency_ms(item['host']) or (1.2 if item['id'] == 'ping-gateway' else 14.5)
+            measured = cls.measure_latency_ms(item['host'])
+            lat = measured if measured is not None else 0.0
+            is_alive = measured is not None
             PingTarget.objects.update_or_create(
                 target_id=item['id'],
                 defaults={
                     'name': item['name'],
                     'host': item['host'],
-                    'latency_ms': measured,
-                    'history': [measured, measured, measured, measured, measured],
-                    'jitter_ms': 0.3,
-                    'packet_loss_percent': 0.0,
-                    'status': 'excellent' if measured < 50 else 'good',
+                    'latency_ms': lat,
+                    'history': [lat] * 5 if is_alive else [0.0] * 5,
+                    'jitter_ms': 0.1 if is_alive else 0.0,
+                    'packet_loss_percent': 0.0 if is_alive else 100.0,
+                    'status': ('excellent' if lat < 30 else 'good') if is_alive else 'down',
                 }
             )
 
     @staticmethod
-    def measure_latency_ms(host: str, port: int = 53, timeout: float = 1.0) -> Optional[float]:
+    def measure_latency_ms(host: str, timeout: float = 1.0) -> Optional[float]:
         """
-        Unprivileged cross-platform latency measurement using high-resolution TCP socket connect.
-        Fallback to port 80/443 if port 53 is refused.
+        Measures real ICMP ping round-trip latency.
+        Falls back to high-resolution TCP socket probe if ping is unavailable.
         """
-        start = time.perf_counter()
+        # 1. System ICMP Ping
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(timeout)
-                s.connect((host, port))
-                elapsed = (time.perf_counter() - start) * 1000
-                return round(elapsed, 1)
-        except (socket.timeout, socket.error):
-            # Try port 80 as secondary probe
+            is_win = platform.system() == 'Windows'
+            cmd = ['ping', '-n', '1', '-w', str(int(timeout * 1000)), host] if is_win else ['ping', '-c', '1', '-t', str(max(1, int(timeout))), host]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 0.5)
+            if res.returncode == 0:
+                match = re.search(r'time[=<]([\d\.]+)\s*ms', res.stdout, re.IGNORECASE)
+                if match:
+                    return round(float(match.group(1)), 2)
+        except Exception:
+            pass
+
+        # 2. TCP Socket probe on port 53 (DNS) or port 80 (HTTP)
+        for probe_port in (53, 80, 443):
+            start = time.perf_counter()
             try:
-                start2 = time.perf_counter()
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(timeout)
-                    s.connect((host, 80))
-                    elapsed = (time.perf_counter() - start2) * 1000
-                    return round(elapsed, 1)
+                    s.connect((host, probe_port))
+                    elapsed = (time.perf_counter() - start) * 1000
+                    return round(elapsed, 2)
             except Exception:
-                return None
+                continue
+
+        return None
 
     @classmethod
     def benchmark_targets(cls) -> List[Dict[str, Any]]:
@@ -132,31 +138,27 @@ class PingBenchmarkService:
             if measured is not None:
                 new_latency = measured
                 loss = 0.0
-            else:
-                # If probe timed out, simulate slight jitter around baseline to prevent UI crash
-                base = target.latency_ms if target.latency_ms > 0 else 10.0
-                new_latency = round(base + (time.time() % 2 - 1) * 0.8, 1)
-                loss = 0.0
+                updated_history = (current_history + [new_latency])[-8:]
 
-            updated_history = (current_history + [new_latency])[-8:]  # keep last 8 entries
+                if len(updated_history) >= 2:
+                    mean = sum(updated_history) / len(updated_history)
+                    variance = sum((x - mean) ** 2 for x in updated_history) / len(updated_history)
+                    jitter = round(math.sqrt(variance), 1)
+                else:
+                    jitter = 0.2
 
-            # Calculate Jitter: standard deviation of latency samples
-            if len(updated_history) >= 2:
-                mean = sum(updated_history) / len(updated_history)
-                variance = sum((x - mean) ** 2 for x in updated_history) / len(updated_history)
-                jitter = round(math.sqrt(variance), 1)
+                if new_latency < 25 and jitter < 3:
+                    status = 'excellent'
+                elif new_latency < 75:
+                    status = 'good'
+                else:
+                    status = 'poor'
             else:
-                jitter = 0.4
-
-            # Determine quality status
-            if new_latency < 20 and jitter < 2:
-                status = 'excellent'
-            elif new_latency < 60 and jitter < 5:
-                status = 'good'
-            elif new_latency < 150:
-                status = 'poor'
-            else:
+                new_latency = 0.0
+                loss = 100.0
+                jitter = 0.0
                 status = 'down'
+                updated_history = (current_history + [0.0])[-8:]
 
             target.latency_ms = new_latency
             target.history = updated_history

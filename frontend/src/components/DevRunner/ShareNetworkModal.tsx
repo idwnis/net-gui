@@ -37,6 +37,7 @@ export const ShareNetworkModal: React.FC<ShareNetworkModalProps> = ({
   const [tunnelUrl, setTunnelUrl] = useState<string | null>(service.publicTunnelUrl || null);
 
   const lanUrl = `http://${hostIp}:${service.port || 3000}`;
+  const subnetCidr = hostIp.includes('.') ? `${hostIp.split('.').slice(0, 3).join('.')}.0/24` : 'local subnet';
 
   const copyToClipboard = (text: string, isTunnel: boolean) => {
     navigator.clipboard.writeText(text);
@@ -110,7 +111,7 @@ export const ShareNetworkModal: React.FC<ShareNetworkModalProps> = ({
               </div>
 
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Any device connected to Wi-Fi <strong className="text-slate-800 dark:text-slate-200">(192.168.1.0/24)</strong> such as your iPhone, iPad, Android, or laptop can open this URL directly.
+                Any device connected to Wi-Fi <strong className="text-slate-800 dark:text-slate-200">({subnetCidr})</strong> such as your iPhone, iPad, Android, or laptop can open this URL directly.
               </p>
             </div>
 

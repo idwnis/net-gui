@@ -54,6 +54,7 @@ interface DevRunnerViewProps {
   projects: DevProject[];
   systemPorts: SystemPort[];
   aiSettings: AISettings;
+  hostIp?: string;
   onUpdateAISettings: (newSettings: AISettings) => void;
   onStartService: (projectId: string, serviceId: string) => void;
   onStopService: (projectId: string, serviceId: string) => void;
@@ -69,6 +70,7 @@ export const DevRunnerView: React.FC<DevRunnerViewProps> = ({
   projects,
   systemPorts,
   aiSettings,
+  hostIp,
   onUpdateAISettings,
   onStartService,
   onStopService,
@@ -1084,7 +1086,7 @@ export const DevRunnerView: React.FC<DevRunnerViewProps> = ({
           isOpen={!!serviceToShare}
           onClose={() => setServiceToShare(null)}
           service={serviceToShare}
-          hostIp="192.168.1.105"
+          hostIp={hostIp || '10.152.27.29'}
         />
       )}
 

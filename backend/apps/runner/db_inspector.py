@@ -55,7 +55,7 @@ class DatabaseInspectorService:
             'totalConnections': 2,
             'memoryUsageMb': 8.2,
             'sampleRedisKeys': [
-                {'key': 'session:netpulse:active', 'type': 'hash', 'ttl': 3600, 'value': '{"status":"active"}'},
+                {'key': 'session:netgui:active', 'type': 'hash', 'ttl': 3600, 'value': '{"status":"active"}'},
                 {'key': 'cache:devices_online', 'type': 'set', 'ttl': 120, 'value': '["127.0.0.1"]'},
                 {'key': 'rate_limit:local', 'type': 'string', 'ttl': 55, 'value': '4'},
             ]

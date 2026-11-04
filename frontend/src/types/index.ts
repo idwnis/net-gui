@@ -204,6 +204,7 @@ export interface VpnGatewayConfig {
   activeClientsCount: number;
   upstreamInterface: string;
   dnsSinkholeEnabled?: boolean;
+  activeClients?: { name?: string; ip: string; traffic?: string }[];
 }
 
 export interface DropFileItem {

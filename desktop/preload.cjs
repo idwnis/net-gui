@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('netpulse', {
+const electronBridge = {
   isElectron: true,
   platform: process.platform,
   arch: process.arch,
@@ -9,4 +9,7 @@ contextBridge.exposeInMainWorld('netpulse', {
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
   onBackendReady: (callback) => ipcRenderer.on('backend-ready', (_event, port) => callback(port)),
-});
+};
+
+contextBridge.exposeInMainWorld('netgui', electronBridge);
+contextBridge.exposeInMainWorld('netpulse', electronBridge);
