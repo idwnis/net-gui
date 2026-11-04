@@ -1,0 +1,21 @@
+{
+  "name": "net-gui-desktop",
+  "version": "2.0.0",
+  "description": "Net GUI Desktop - Network Radar & Developer Orchestrator",
+  "author": "Net GUI Team",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "build:mac": "electron-builder --mac dmg",
+    "build:win": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --app-bg: #f6f7f9;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --glass-bg: #ffffff;
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    --app-bg: #090b10;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --glass-bg: #0f121a;
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Plus Jakarta Sans", system-ui, sans-serif;
+    background-color: var(--app-bg);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  code, pre, .font-mono {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Subtle tactile active scale */
+.active-press {
+  transition: transform 0.12s ease;
+}
+.active-press:active {
+  transform: scale(0.98);
+}
+
+/* Clean Instrument-Grade Surface Utilities */
+.liquid-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.liquid-glass-subtle {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--glass-border);
+}
+
+.dark .liquid-glass-subtle {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.liquid-glass-pill {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--glass-border);
+}
+
+.dark .liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.liquid-glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.liquid-glass-card:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.dark .liquid-glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Clean minimal scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Hide scrollbar for clean tab lists when needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

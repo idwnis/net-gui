@@ -1,0 +1,22 @@
+[Unit]
+Description=NetPulse Core Suite ASGI Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/netpulse/backend
+ExecStart=/opt/netpulse/backend/venv/bin/daphne -b 0.0.0.0 -p 8000 config.asgi:application
+Restart=always
+RestartSec=5s
+Environment=PYTHONPATH=/opt/netpulse/backend
+Environment=DJANGO_SETTINGS_MODULE=config.settings
+Environment=PYTHONUNBUFFERED=1
+
+# Allow binding low ports (53 for DNS, 80 for HTTP) without full root permissions
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target

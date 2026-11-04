@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  netpulse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netpulse-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"       # Web Dashboard & ASGI API
+      - "7890:7890"       # HTTP / SOCKS5 VPN Gateway Proxy
+      - "53:53/udp"       # DNS AdBlock Sinkhole
+      - "53:53/tcp"
+    environment:
+      - DJANGO_SECRET_KEY=netpulse-production-secret-key-change-in-prod
+      - DEBUG=False
+      - ALLOWED_HOSTS=*
+      - NETPULSE_AUTH_KEY=netpulse-admin-passphrase
+    volumes:
+      - netpulse_data:/app/backend/data
+      - netpulse_media:/app/backend/media
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+volumes:
+  netpulse_data:
+  netpulse_media:
